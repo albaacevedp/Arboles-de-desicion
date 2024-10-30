@@ -1,0 +1,118 @@
+---
+output:
+  pdf_document: default
+  word_document: default
+header-includes: \pagenumbering{gobble}
+---
+Implemente todos los modelos estad´ısticos y de machine
+learning para predecir la variable de salida o respuesta: gastos
+Arbol de regresión
+```{r, message = FALSE, echo=FALSE}
+seguros <- read.csv ("~/Especialidad/machine/tarea 1/insurance.csv", header = TRUE,  sep = ",", dec = ".")
+```
+Muestra de entrenamiento y de prueba
+```{r, echo=FALSE}
+set.seed(56)
+index <- sample(1:nrow(seguros), 0.8*nrow(seguros),replace=FALSE)
+s_train <- seguros[index, ] 
+s_test <- seguros[-index, ] 
+```
+Modelo Arbol de desición
+```{r, echo=FALSE, warning=FALSE}
+library(rpart)
+library(rpart.plot)
+library(xtable)
+s_model <- rpart(gastos ~. , data = s_train)
+summary(s_model)
+rpart.plot(x = s_model, type = 1, extra = 101, yesno= TRUE )
+```
+Reglas de decision
+
+```{r, echo=FALSE}
+rules<-as.matrix(rpart.rules(s_model))
+#library(xtable)
+#print(xtable(rules), include.rownames = FALSE, iclude.colnames=FALSE)
+```
+```{=latex}
+% latex table generated in R 4.3.2 by xtable 1.8-4 package
+% Sun May  5 16:23:05 2024
+\begin{table}[ht]
+\centering
+\begin{tabular}{lllllllllllll}
+  \hline
+gastos &  &  &  &  &  &  &  &  &  &  &  &  \\ 
+  \hline
+ 5578 & when & fuma & is & no & \& & edad & $<$  & 43 &  &  &  &  \\ 
+  12651 & when & fuma & is & no & \& & edad & $>$= & 43 &  &  &  &  \\ 
+  21543 & when & fuma & is & yes &  &  &  &  & \& & imc & $<$  & 30 \\ 
+  41659 & when & fuma & is & yes &  &  &  &  & \& & imc & $>$= & 30 \\ 
+   \hline
+\end{tabular}
+\end{table}
+```
+Uso de la muestra de prueba, valor obtenido raiz del error cuadratico medio (rmse), debido a que la variable gastos es una variable continua y el modelo es un arbol de regresion
+```{r,echo=FALSE}
+pred <- predict(object = s_model,  newdata = s_test)
+sqrt(mean((pred - s_test$gastos)^2))
+```
+Importancia de las variables de regresion
+
+```{r, echo=FALSE, Warning=FALSE}
+library(ggplot2)
+Variables<-c("fuma","imc","edad", "región","sexo","niños")
+Importancia<-c(69,17,9,3,2,1)
+varim<-data.frame(Variables,Importancia)
+varim$Variables<-factor(varim$Variables,levels = varim$Variables)
+ggplot(varim)+
+  aes(x = Variables , y = Importancia)+
+  geom_pointrange(aes(ymin = 0, ymax =Importancia),color = "cadetblue", size = .3)+
+    coord_flip() +
+  labs(x = "", y = "", title = "Importancia de variables")
+```
+Ajuste de hiper parametros o turning (funcion control)
+
+
+```{r, echo=FALSE}
+control<-rpart.control(cp=0.001, minsplit = 200, minbucket = 100 )
+s_model1 <- rpart(formula= gastos ~ ., data=s_train, control=control)
+summary(s_model1)
+rpart.plot(x = s_model1, type = 1, extra = 101, yesno= TRUE )
+```
+
+```{r, echo=FALSE}
+rules<-as.matrix(rpart.rules(s_model1))
+#xtable(rules), include.rownames = FALSE, iclude.colnames=FALSE
+```
+```{=latex}
+
+% latex table generated in R 4.3.2 by xtable 1.8-4 package
+% Mon May  6 00:01:41 2024
+\begin{table}[ht]
+\centering
+\begin{tabular}{lllllllllllllllllllllll}
+  \hline
+gastos & V2 & V3 & V4 & V5 & V6 & V7 & V8 & V9 & V10 & V11 & V12 & V13 & V14 & V15 & V16 & V17 & V18 & V19 & V20 & V21 & V22 & V23 \\ 
+  \hline
+ 3102 & when & fuma & is & no & \& & edad & $<$  & 23 &  &  &  &  &  &  &  &  &  &  &  &  &  &  \\ 
+   4972 & when & fuma & is & no & \& & edad & is & 23 & to & 45 & \& & ninos & $<$  & 1 &  &  &  &  &  &  &  &  \\ 
+   6373 & when & fuma & is & no & \& & edad & is & 23 & to & 45 & \& & ninos & $>$= & 1 &  &  &  &  & \& & region & is & southeast or southwest \\ 
+   8039 & when & fuma & is & no & \& & edad & is & 23 & to & 45 & \& & ninos & $>$= & 1 &  &  &  &  & \& & region & is & northeast or northwest \\ 
+  10398 & when & fuma & is & no & \& & edad & is & 45 & to & 52 &  &  &  &  &  &  &  &  &  &  &  &  \\
+  13005 & when & fuma & is & no & \& & edad & is & 52 & to & 58 &  &  &  &  &  &  &  &  &  &  &  &  \\ 
+  14935 & when & fuma & is & no & \& & edad & $>$= &  &  & 58 &  &  &  &  &  &  &  &  &  &  &  &  \\ 
+  21544 & when & fuma & is & yes &  &  &  &  &  &  &  &  &  &  & \& & imc & $<$  & 30 &  &  &  &  \\ 
+  41659 & when & fuma & is & yes &  &  &  &  &  &  &  &  &  &  & \& & imc & $>$= & 30 &  &  &  &  \\ 
+   \hline
+\end{tabular}
+\end{table}
+```
+RMSE
+```{r}
+pred1 <- predict(object = s_model1,  newdata = s_test)
+sqrt(mean((pred1 - s_test$gastos)^2))
+```
+
+
+
+
+

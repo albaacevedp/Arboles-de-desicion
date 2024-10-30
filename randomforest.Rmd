@@ -1,0 +1,41 @@
+---
+output:
+  word_document: default
+  pdf_document: default
+header-includes: \pagenumbering{gobble}
+---
+Random forest
+```{r, message = FALSE, echo=FALSE}
+seguros <- read.csv ("~/machine/proyecto/insurance.csv", header = TRUE,  sep = ",", dec = ".")
+```
+Muestra de entrenamiento y de prueba
+```{r, echo=FALSE}
+set.seed(56)
+index <- sample(1:nrow(seguros), 0.8*nrow(seguros),replace=FALSE)
+s_train <- seguros[index, ] 
+s_test <- seguros[-index, ] 
+```
+
+```{r}
+library(randomForest)
+rf_model <- randomForest(gastos ~ ., data = s_train, ntree = 500)
+print(rf_model)
+plot(rf_model)
+```
+
+
+```{r}
+númerodearbolesconelmenorerror<-which.min(rf_model$mse)
+RMSE<-sqrt(rf_model$mse[which.min(rf_model$mse)])
+```
+Predicciones
+```{r}
+pred <- predict(rf_model,  s_test)
+sqrt(mean((pred - s_test$gastos)^2))
+sd(seguros$gastos)
+```
+
+
+
+
+
